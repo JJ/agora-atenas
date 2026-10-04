@@ -18,3 +18,7 @@ All text lives in `buildings.json`: `names` maps each legend number to its name,
 ## Credits
 
 Map `agora.png` by Madmedea, [World History Encyclopedia](https://www.worldhistory.org/image/192/agora-of-athens/), CC BY-SA. The building outlines in `index.html` are generated from it by `tools/regions.py`.
+
+## Agora c. AD 150
+
+`atenas-150-dc.html` is the same game on the 2nd-century plan. The map `agora-150-dc.webp` is `Plan-of-the-agora-at-the-height-of-its-development-in-ca-AD-150.webp` with the printed names erased, and the names live in `buildings-150-dc.json` (same format as above). Delete an entry from `names` to leave that place out of the game. Map, marker positions and label positions are regenerated with `python3 tools/erase-labels-150.py` (its output goes into the `<script id="places">` block).
