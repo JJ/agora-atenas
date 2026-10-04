@@ -1,0 +1,42 @@
+{
+  "lang": "en",
+  "ui": {
+    "title": "The Agora of Athens",
+    "subtitle": "5th century BCE · Name the highlighted building",
+    "question": "What is the highlighted building?",
+    "score": "Score",
+    "progress": "Building {n} of {total}",
+    "tries": "Tries",
+    "correct": "Correct! +{points}",
+    "wrong": "Not quite. {left} tries left",
+    "wrongLast": "Not quite. Last try!",
+    "missed": "It was: {name}",
+    "finished": "Agora complete!",
+    "finalScore": "You scored {score} out of {max}",
+    "firstTry": "{count} at the first try",
+    "playAgain": "Play again",
+    "credit": "Map by Madmedea, CC BY-SA, via World History Encyclopedia"
+  },
+  "names": {
+    "1": "Peristylar Court",
+    "2": "Mint",
+    "3": "Enneacrounos",
+    "4": "South Stoa",
+    "5": "Heliaea",
+    "6": "Strategeion",
+    "7": "Colonos Agoraios",
+    "8": "Tholos",
+    "9": "Agora stone",
+    "10": "Monument of the Eponymous Heroes",
+    "11": "Old Bouleuterion",
+    "12": "New Bouleuterion",
+    "13": "Temple of Hephaestus (Hephaestion)",
+    "14": "Temple of Apollo Patroos",
+    "15": "Stoa of Zeus",
+    "16": "Altar of the Twelve Gods",
+    "17": "Royal Stoa",
+    "18": "Temple of Aphrodite Urania",
+    "19": "Stoa of Hermes",
+    "20": "Stoa Poikile"
+  }
+}
