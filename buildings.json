@@ -1,8 +1,8 @@
 {
   "lang": "en",
   "ui": {
-    "title": "The Agora of Athens",
-    "subtitle": "5th century BCE · Name the highlighted building",
+    "title": "Ágora de Atenas",
+    "subtitle": "Siglo V aC · Nombra el edificio iluminado",
     "question": "What is the highlighted building?",
     "score": "Score",
     "progress": "Building {n} of {total}",
@@ -18,24 +18,17 @@
     "credit": "Map by Madmedea, CC BY-SA, via World History Encyclopedia"
   },
   "names": {
-    "1": "Peristylar Court",
-    "2": "Mint",
-    "3": "Enneacrounos",
     "4": "Stoa del sur",
     "5": "Heliaea",
     "6": "Strategeion",
-    "7": "Colonos Agoraios",
-    "8": "Tholos",
-    "9": "Agora stone",
-    "10": "Monument of the Eponymous Heroes",
+    "8": "Tholos - Pritaneo",
     "11": "Metroon",
-    "12": "New Bouleuterion",
+    "12": "Bouleuterion Nuevo",
     "13": "Hephaestion",
-    "14": "Temple of Apollo Patroos",
+    "14": "Templo de Apollo Patroos",
     "15": "Stoa de Zeus",
-    "16": "Altar of the Twelve Gods",
     "17": "Stoa real",
-    "18": "Temple of Aphrodite Urania",
+    "18": "Templo de Aphrodite Urania",
     "19": "Stoa de Hermes",
     "20": "Stoa Poikile"
   }
