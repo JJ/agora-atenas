@@ -1,0 +1,649 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ágora de Atenas · Tipos de edificio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f4ede1;
+    --paper: #fffaf1;
+    --ink: #2b2118;
+    --muted: #7a6a58;
+    --line: #e2d5bf;
+    --accent: #e3a019;
+    --accent-ink: #8a5a00;
+    --good: #3f8a5a;
+    --meh: #d98c2b;
+    --bad: #c4553b;
+    --shadow: 0 1px 2px rgba(60, 40, 10, .08), 0 8px 24px rgba(60, 40, 10, .08);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.4 "Source Sans 3", system-ui, sans-serif;
+  }
+  header {
+    text-align: center;
+    padding: 20px 16px 8px;
+  }
+  h1 {
+    font-family: Cinzel, Georgia, serif;
+    font-weight: 700;
+    letter-spacing: .06em;
+    margin: 0;
+    font-size: clamp(1.5rem, 4vw, 2.3rem);
+  }
+  header p { margin: 4px 0 0; color: var(--muted); }
+
+  main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 20px;
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 12px 16px 24px;
+    align-items: start;
+  }
+  @media (max-width: 900px) {
+    main { grid-template-columns: minmax(0, 1fr); }
+  }
+
+  .card {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+  }
+
+  /* Map */
+  .map { padding: 10px; }
+  .stage { position: relative; }
+  .stage img { display: block; width: 100%; height: auto; border-radius: 8px; }
+  .stage svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .credit { font-size: .75rem; color: var(--muted); text-align: right; margin: 6px 4px 0; }
+  .credit a { color: inherit; }
+
+  .pick { cursor: pointer; outline: none; }
+  .pick path { fill: var(--accent); opacity: .18; transition: opacity .15s; }
+  .pick:hover path, .pick:focus-visible path { opacity: .55; }
+  .pick:focus-visible { filter: drop-shadow(0 0 4px rgba(227, 160, 25, .9)); }
+  .locked .pick { cursor: default; }
+  .locked .pick:not(.solved):not(.missed):not(.reveal) path { opacity: .08; }
+  .pick.solved, .pick.missed, .pick.reveal { cursor: default; }
+  .pick.solved path { fill: var(--good); opacity: .65; }
+  .pick.missed path { fill: var(--bad); opacity: .6; animation: blink .35s 2; }
+  .pick.reveal path { fill: var(--meh); opacity: .6; animation: pulse 1.3s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .3; } }
+  @keyframes blink { 50% { opacity: .15; } }
+
+  #labels { pointer-events: none; }
+  .label rect { fill: #fff; stroke-width: 1.5; }
+  .label text { font: 600 10.5px "Source Sans 3", sans-serif; fill: var(--ink); text-anchor: middle; }
+  .label.ok rect { stroke: var(--good); }
+  .label.ko rect { stroke: var(--bad); }
+  .label.rv rect { stroke: var(--meh); }
+  .label { animation: pop .35s cubic-bezier(.3, 1.6, .5, 1) both; transform-box: fill-box; transform-origin: center; }
+  @keyframes pop { from { transform: scale(.3); opacity: 0; } }
+
+  /* Side panel */
+  aside { display: flex; flex-direction: column; gap: 16px; }
+  @media (min-width: 901px) { aside { position: sticky; top: 12px; } }
+
+  .score { display: flex; align-items: center; gap: 16px; padding: 16px; }
+  .gauge { position: relative; width: 104px; height: 104px; flex: none; }
+  .gauge svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .gauge .track { fill: none; stroke: var(--line); stroke-width: 9; }
+  .gauge .fill { fill: none; stroke: url(#gold); stroke-width: 9; stroke-linecap: round; transition: stroke-dashoffset .6s ease; }
+  .gauge .num {
+    position: absolute; inset: 0; display: grid; place-content: center; text-align: center;
+  }
+  .gauge .num b { font: 700 2rem/1 Cinzel, Georgia, serif; }
+  .gauge .num small { color: var(--muted); font-size: .8rem; }
+  .gauge.bump .num b { animation: bump .45s ease; }
+  @keyframes bump { 40% { transform: scale(1.3); color: var(--good); } }
+
+  .score-info { flex: 1; min-width: 0; }
+  .score-info .lbl { text-transform: uppercase; letter-spacing: .1em; font-size: .75rem; color: var(--muted); }
+  .score-info .prog { font-weight: 600; margin: 2px 0 8px; }
+  .segments { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+  .segments i { height: 8px; border-radius: 2px; background: var(--line); transition: background .3s; }
+  .segments i.now { background: var(--accent); }
+  .segments i.ok { background: var(--good); }
+  .segments i.ko { background: var(--bad); }
+
+  .ask { padding: 16px; }
+  .ask h2 { font: 600 1.25rem/1.3 Cinzel, Georgia, serif; margin: 0 0 6px; }
+  .ask .hint { color: var(--muted); font-size: .9rem; margin: 0 0 12px; }
+  .count { font-weight: 600; margin-bottom: 8px; }
+  .tries { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: .85rem; margin-bottom: 10px; }
+  .tries i { width: 12px; height: 12px; border-radius: 50%; background: var(--accent); transition: background .3s, transform .3s; }
+  .tries i.used { background: var(--bad); transform: scale(.75); }
+  .feedback { min-height: 1.5em; font-weight: 600; margin-bottom: 10px; }
+  .feedback.good { color: var(--good); }
+  .feedback.bad { color: var(--bad); }
+
+  .found { display: flex; flex-wrap: wrap; gap: 6px; padding: 0; margin: 0; list-style: none; }
+  .found li {
+    font-size: .9rem; border-radius: 999px; padding: 4px 11px;
+    border: 1px solid var(--line); background: #fff;
+    animation: pop .35s cubic-bezier(.3, 1.6, .5, 1) both;
+  }
+  .found li.ok { background: var(--good); border-color: var(--good); color: #fff; }
+  .found li.ko { background: #fbe4de; border-color: var(--bad); color: var(--bad); text-decoration: line-through; }
+  .found li.rv { background: #fdf0dc; border-color: var(--meh); color: var(--accent-ink); }
+
+  .btn {
+    font: 600 1rem "Source Sans 3", sans-serif;
+    background: var(--accent); color: #fff; border: 0; border-radius: 999px;
+    padding: 10px 26px; cursor: pointer;
+  }
+  .btn:hover { background: #cf8f10; }
+  .ask .btn { margin-top: 14px; }
+  .ask .btn[hidden] { display: none; }
+
+  /* Overlays */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(43, 33, 24, .55);
+    display: grid; place-items: center; padding: 16px; z-index: 10;
+  }
+  .overlay[hidden] { display: none; }
+  .final { padding: 28px 24px; text-align: center; max-width: 380px; width: 100%; }
+  .final h2 { font-family: Cinzel, Georgia, serif; margin: 0 0 8px; }
+  .final .big { font: 700 3.2rem/1 Cinzel, Georgia, serif; color: var(--accent-ink); margin: 12px 0; }
+  .final p { margin: 4px 0; color: var(--muted); }
+  .final .btn { margin-top: 18px; }
+  .error { max-width: 640px; margin: 40px auto; padding: 20px; color: var(--bad); }
+
+  /* Apollo playing the kithara, after Roman wall paintings */
+  .apollo-card {
+    position: relative; padding: 20px 20px 22px; text-align: center;
+    max-width: 380px; width: 100%;
+    animation: rise .5s cubic-bezier(.2, 1.2, .4, 1) both;
+  }
+  @keyframes rise { from { transform: translateY(30px) scale(.9); opacity: 0; } }
+  .apollo-card h2 { font-family: Cinzel, Georgia, serif; margin: 12px 0 4px; font-size: 1.15rem; }
+  .apollo-card p { margin: 0; color: var(--muted); }
+  .apollo-card .btn { margin-top: 16px; }
+  .apollo-card .source { font-size: .72rem; margin-top: 12px; }
+  .apollo-card .source a { color: var(--muted); }
+  .sound {
+    position: absolute; top: 10px; right: 10px;
+    font: inherit; font-size: .8rem; color: var(--muted);
+    background: transparent; border: 1px solid var(--line); border-radius: 999px;
+    padding: 2px 9px; cursor: pointer;
+  }
+  .fresco { width: 100%; max-width: 260px; height: auto; display: block; margin: 0 auto; border-radius: 6px; }
+  .fresco .sway { animation: sway 2.4s ease-in-out infinite; transform-origin: 120px 272px; }
+  .fresco .strum { animation: strum .5s ease-in-out infinite; transform-origin: 96px 146px; }
+  .fresco .str { animation: vibrate .09s linear infinite alternate; transform-box: fill-box; transform-origin: center; }
+  .fresco .str:nth-child(2n) { animation-duration: .07s; }
+  .fresco .str:nth-child(3n) { animation-duration: .11s; }
+  .fresco .note { font: 700 22px Georgia, serif; fill: #6b1e17; opacity: 0; animation: float 2.6s ease-out infinite; }
+  .fresco .note:nth-of-type(2) { animation-delay: .65s; }
+  .fresco .note:nth-of-type(3) { animation-delay: 1.3s; }
+  .fresco .note:nth-of-type(4) { animation-delay: 1.95s; }
+  .fresco .halo { animation: glow 2.4s ease-in-out infinite; transform-origin: 120px 66px; }
+  @keyframes sway { 0%, 100% { transform: rotate(-1.5deg); } 50% { transform: rotate(1.5deg); } }
+  @keyframes strum { 0%, 100% { transform: rotate(-7deg); } 50% { transform: rotate(5deg); } }
+  @keyframes vibrate { from { transform: translateX(-.6px); } to { transform: translateX(.6px); } }
+  @keyframes float {
+    0% { opacity: 0; transform: translate(0, 0) rotate(0); }
+    15% { opacity: 1; }
+    100% { opacity: 0; transform: translate(22px, -90px) rotate(20deg); }
+  }
+  @keyframes glow { 50% { transform: scale(1.08); opacity: .7; } }
+  @media (prefers-reduced-motion: reduce) {
+    .fresco *, .apollo-card { animation: none !important; }
+    .fresco .note { opacity: 1; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Ágora de Atenas</h1>
+  <p>Siglo V aC · Marca en el mapa todos los edificios de cada tipo</p>
+</header>
+
+<main id="game" hidden>
+  <section class="card map">
+    <div class="stage">
+    <img src="agora.png" alt="" width="808" height="720">
+    <svg id="overlay" viewBox="0 0 808 720">
+      <g id="fills"></g>
+      <g id="labels"></g>
+    </svg>
+    </div>
+    <p class="credit"><a href="https://www.worldhistory.org/image/192/agora-of-athens/"></a></p>
+  </section>
+
+  <aside>
+    <div class="card score">
+      <div class="gauge" id="gauge">
+        <svg viewBox="0 0 100 100">
+          <defs>
+            <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#f2c14e"/><stop offset="1" stop-color="#c47f0a"/>
+            </linearGradient>
+          </defs>
+          <circle class="track" cx="50" cy="50" r="42"/>
+          <circle class="fill" id="gaugeFill" cx="50" cy="50" r="42"/>
+        </svg>
+        <div class="num"><b id="score">0</b><small id="max"></small></div>
+      </div>
+      <div class="score-info">
+        <div class="lbl">Edificios encontrados</div>
+        <div class="prog" id="progress"></div>
+        <div class="segments" id="segments"></div>
+      </div>
+    </div>
+
+    <div class="card ask">
+      <h2 id="question"></h2>
+      <p class="hint">Haz clic en los edificios del mapa.</p>
+      <div class="count" id="count"></div>
+      <div class="tries"><span>Errores</span><i></i><i></i><i></i></div>
+      <div class="feedback" id="feedback" aria-live="polite"></div>
+      <ul class="found" id="found"></ul>
+      <button class="btn" id="next" hidden>Siguiente pregunta</button>
+    </div>
+  </aside>
+</main>
+
+<div class="overlay" id="apollo" hidden>
+  <div class="card apollo-card" role="dialog" aria-labelledby="apolloTitle">
+    <button class="sound" id="sound"></button>
+    <svg class="fresco" viewBox="0 0 240 300" role="img" aria-label="Apolo tocando la cítara">
+      <defs>
+        <filter id="plaster" x="0" y="0" width="100%" height="100%">
+          <feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="3" seed="4" result="n"/>
+          <feColorMatrix in="n" type="matrix" values="0 0 0 0 .45  0 0 0 0 .3  0 0 0 0 .15  0 0 0 .22 0" result="grain"/>
+          <feComposite in="grain" in2="SourceGraphic" operator="in" result="g"/>
+          <feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="g"/></feMerge>
+        </filter>
+        <radialGradient id="haloGrad">
+          <stop offset="0" stop-color="#fff3c4"/><stop offset=".7" stop-color="#f1d27a"/><stop offset="1" stop-color="#f1d27a" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <!-- Pompeian red frame and ochre panel -->
+      <rect width="240" height="300" fill="#a8322a" filter="url(#plaster)"/>
+      <rect x="12" y="12" width="216" height="276" fill="#ead3a2" filter="url(#plaster)"/>
+      <rect x="17" y="17" width="206" height="266" fill="none" stroke="#6b1e17" stroke-width="1.5"/>
+
+      <g class="sway">
+        <circle class="halo" cx="120" cy="66" r="38" fill="url(#haloGrad)"/>
+        <!-- himation, lower body -->
+        <path d="M88 148 Q78 210 82 270 L158 270 Q164 210 152 148 Z" fill="#9c2f4a" stroke="#5e1a2c" stroke-width="1.2"/>
+        <path d="M100 160 Q96 215 100 268 M120 162 Q118 215 120 268 M140 160 Q144 215 140 268" fill="none" stroke="#6e1f35" stroke-width="1.4" opacity=".7"/>
+        <ellipse cx="104" cy="272" rx="11" ry="4" fill="#d9a074"/>
+        <ellipse cx="137" cy="272" rx="11" ry="4" fill="#d9a074"/>
+        <!-- bare torso -->
+        <path d="M98 100 Q120 94 142 100 L150 152 Q120 160 90 152 Z" fill="#dba47a" stroke="#9b6a45" stroke-width="1.2"/>
+        <path d="M108 118 Q114 122 120 118 Q126 122 132 118" fill="none" stroke="#a8754d" stroke-width="1"/>
+        <!-- mantle over the left shoulder -->
+        <path d="M132 97 Q152 100 152 124 L153 156 L96 156 Q124 134 132 97 Z" fill="#9c2f4a" stroke="#5e1a2c" stroke-width="1.2"/>
+        <path d="M138 108 Q130 132 110 150 M146 116 Q140 138 126 154" fill="none" stroke="#6e1f35" stroke-width="1.2" opacity=".7"/>
+        <!-- neck and head -->
+        <rect x="113" y="80" width="14" height="20" rx="4" fill="#dba47a"/>
+        <ellipse cx="120" cy="66" rx="17" ry="20" fill="#e2ad83" stroke="#9b6a45" stroke-width="1"/>
+        <path d="M102 68 Q100 42 120 42 Q140 42 138 68 Q136 54 120 53 Q104 54 102 68 Z" fill="#5a3a1e"/>
+        <circle cx="102" cy="76" r="5" fill="#5a3a1e"/><circle cx="138" cy="76" r="5" fill="#5a3a1e"/>
+        <circle cx="104" cy="84" r="4" fill="#5a3a1e"/><circle cx="136" cy="84" r="4" fill="#5a3a1e"/>
+        <!-- laurel wreath -->
+        <g fill="#4e7a3a">
+          <ellipse cx="104" cy="58" rx="6" ry="2.6" transform="rotate(-60 104 58)"/>
+          <ellipse cx="108" cy="50" rx="6" ry="2.6" transform="rotate(-35 108 50)"/>
+          <ellipse cx="115" cy="45" rx="6" ry="2.6" transform="rotate(-12 115 45)"/>
+          <ellipse cx="125" cy="45" rx="6" ry="2.6" transform="rotate(12 125 45)"/>
+          <ellipse cx="132" cy="50" rx="6" ry="2.6" transform="rotate(35 132 50)"/>
+          <ellipse cx="136" cy="58" rx="6" ry="2.6" transform="rotate(60 136 58)"/>
+        </g>
+        <!-- face -->
+        <ellipse cx="113" cy="67" rx="1.8" ry="1.3" fill="#3b2412"/>
+        <ellipse cx="127" cy="67" rx="1.8" ry="1.3" fill="#3b2412"/>
+        <path d="M110 63 Q113 61 116 63 M124 63 Q127 61 130 63" fill="none" stroke="#5a3a1e" stroke-width=".9"/>
+        <path d="M120 68 L118.5 75 L121 75.5" fill="none" stroke="#9b6a45" stroke-width=".9"/>
+        <path d="M116 79 Q120 81.5 124 79" fill="none" stroke="#a24a3a" stroke-width="1.2" stroke-linecap="round"/>
+        <!-- left arm holding the kithara -->
+        <path d="M142 103 Q160 112 166 132 L186 128" fill="none" stroke="#dba47a" stroke-width="9" stroke-linecap="round"/>
+
+        <!-- kithara -->
+        <g transform="translate(146 92) rotate(-8 30 55)">
+          <path d="M4 72 Q-9 30 6 0 L14 2 Q4 32 14 72 Z" fill="#c8963e" stroke="#7a5520" stroke-width="1"/>
+          <path d="M56 72 Q69 30 54 0 L46 2 Q56 32 46 72 Z" fill="#c8963e" stroke="#7a5520" stroke-width="1"/>
+          <rect x="-2" y="5" width="64" height="6" rx="3" fill="#8a5a24"/>
+          <path d="M0 70 L60 70 L56 106 Q30 113 4 106 Z" fill="#c8963e" stroke="#7a5520" stroke-width="1.2"/>
+          <path d="M8 78 L52 78" stroke="#7a5520" stroke-width=".8"/>
+          <rect x="15" y="90" width="30" height="3" fill="#7a5520"/>
+          <g stroke="#fbf1d6" stroke-width=".9">
+            <line class="str" x1="18" y1="11" x2="18" y2="91"/>
+            <line class="str" x1="22" y1="11" x2="22" y2="91"/>
+            <line class="str" x1="26" y1="11" x2="26" y2="91"/>
+            <line class="str" x1="30" y1="11" x2="30" y2="91"/>
+            <line class="str" x1="34" y1="11" x2="34" y2="91"/>
+            <line class="str" x1="38" y1="11" x2="38" y2="91"/>
+            <line class="str" x1="42" y1="11" x2="42" y2="91"/>
+          </g>
+        </g>
+        <ellipse cx="190" cy="127" rx="6" ry="5" fill="#dba47a" stroke="#9b6a45" stroke-width=".8"/>
+
+        <!-- right arm strumming with the plectrum -->
+        <path d="M98 103 Q90 124 96 146" fill="none" stroke="#dba47a" stroke-width="9" stroke-linecap="round"/>
+        <g class="strum">
+          <path d="M96 146 Q130 160 168 160" fill="none" stroke="#dba47a" stroke-width="8" stroke-linecap="round"/>
+          <ellipse cx="170" cy="159" rx="6" ry="5" fill="#e2ad83" stroke="#9b6a45" stroke-width=".8"/>
+          <line x1="173" y1="157" x2="180" y2="150" stroke="#f3e2b0" stroke-width="2" stroke-linecap="round"/>
+        </g>
+      </g>
+
+      <text class="note" x="192" y="96">♪</text>
+      <text class="note" x="204" y="120">♫</text>
+      <text class="note" x="184" y="110">♩</text>
+      <text class="note" x="198" y="88">♬</text>
+    </svg>
+    <h2 id="apolloTitle">¡Apolo toca la cítara para ti!</h2>
+    <p id="apolloText"></p>
+    <button class="btn" id="continue">Continuar</button>
+    <p class="source">Inspirado en el <a href="https://colosseo.it/es/opere/fresco-con-apolo-que-suena-la-ctara/" target="_blank" rel="noopener">fresco con Apolo que toca la cítara</a> (Parco archeologico del Colosseo)</p>
+  </div>
+</div>
+
+<div class="overlay" id="end" hidden>
+  <div class="card final">
+    <h2>¡Ágora completada!</h2>
+    <div class="big" id="finalScore"></div>
+    <p id="finalText"></p>
+    <p id="finalPerfect"></p>
+    <button class="btn" id="again">Jugar otra vez</button>
+  </div>
+</div>
+
+<!-- Building outlines in map pixel coordinates; copied from index.html (regenerate with tools/regions.py) -->
+<script id="regions" type="application/json">
+{"width":808,"height":720,"paths":{"1":"M641 222h1V223h-1zM640 223h5V224h-5zM640 224h8V225h-8zM639 225h11V226h-11zM639 226h14V227h-14zM639 227h16V228h-16zM638 228h20V229h-20zM638 229h23V230h-23zM637 230h26V231h-26zM637 231h29V232h-29zM637 232h31V233h-31zM636 233h35V234h-35zM636 234h38V235h-38zM636 235h40V236h-40zM635 236h44V237h-44zM635 237h46V238h-46zM634 238h50V239h-50zM634 239h53V240h-53zM634 240h55V241h-55zM633 241h59V242h-59zM633 242h61V243h-61zM632 243h65V244h-65zM632 244h68V245h-68zM632 245h70V246h-70zM631 246h74V247h-74zM631 247h76V248h-76zM631 248h79V249h-79zM630 249h83V250h-83zM630 250h85V251h-85zM629 251h89V252h-89zM629 252h91V253h-91zM629 253h94V254h-94zM628 254h98V255h-98zM628 255h100V256h-100zM627 256h104V257h-104zM627 257h106V258h-106zM627 258h109V259h-109zM626 259h113V260h-113zM626 260h115V261h-115zM626 261h118V262h-118zM625 262h121V263h-121zM625 263h124V264h-124zM624 264h128V265h-128zM624 265h130V266h-130zM624 266h133V267h-133zM623 267h136V269h-136zM622 269h137V270h-137zM622 270h136V272h-136zM621 272h136V275h-136zM620 275h136V277h-136zM619 277h136V280h-136zM618 280h136V282h-136zM617 282h137V283h-137zM617 283h136V285h-136zM616 285h136V288h-136zM615 288h136V290h-136zM614 290h136V293h-136zM613 293h136V295h-136zM612 295h137V296h-137zM612 296h62V297h-62zM676 296h72V298h-72zM612 297h61V298h-61zM611 298h60V299h-60zM676 298h71V301h-71zM611 299h59V301h-59zM672 300h1V301h-1zM671 301h2V302h-2zM610 301h60V302h-60zM676 301h70V303h-70zM610 302h63V303h-63zM676 303h69V306h-69zM609 303h64V306h-64zM676 306h68V308h-68zM608 306h65V308h-65zM676 308h67V310h-67zM607 308h66V310h-66zM607 310h136V311h-136zM606 311h136V314h-136zM605 314h136V316h-136zM604 316h136V319h-136zM603 319h136V321h-136zM602 321h136V324h-136zM601 324h136V327h-136zM600 327h136V329h-136zM599 329h136V332h-136zM598 332h136V334h-136zM597 334h136V337h-136zM596 337h136V340h-136zM595 340h136V341h-136zM597 341h134V342h-134zM600 342h130V343h-130zM602 343h128V344h-128zM605 344h125V345h-125zM608 345h121V346h-121zM610 346h119V347h-119zM613 347h115V348h-115zM615 348h113V349h-113zM618 349h110V350h-110zM621 350h106V351h-106zM623 351h104V352h-104zM626 352h101V353h-101zM628 353h98V354h-98zM631 354h95V355h-95zM634 355h91V356h-91zM636 356h89V357h-89zM639 357h86V358h-86zM641 358h83V359h-83zM644 359h80V360h-80zM647 360h76V361h-76zM649 361h74V362h-74zM652 362h71V363h-71zM654 363h68V364h-68zM657 364h65V365h-65zM660 365h62V366h-62zM662 366h59V367h-59zM665 367h56V368h-56zM667 368h53V369h-53zM670 369h50V370h-50zM673 370h47V371h-47zM675 371h44V372h-44zM678 372h41V373h-41zM680 373h38V374h-38zM683 374h35V375h-35zM686 375h32V376h-32zM688 376h29V377h-29zM691 377h26V378h-26zM693 378h24V379h-24zM696 379h20V380h-20zM698 380h18V381h-18zM701 381h14V382h-14zM704 382h11V383h-11zM706 383h9V384h-9zM709 384h5V385h-5zM711 385h3V386h-3z","2":"M647 614h2V615h-2zM647 615h9V616h-9zM646 616h17V617h-17zM646 617h24V618h-24zM646 618h31V619h-31zM646 619h38V620h-38zM646 620h46V621h-46zM646 621h53V622h-53zM646 622h60V623h-60zM645 623h68V624h-68zM645 624h69V626h-69zM645 626h68V630h-68zM644 630h69V633h-69zM644 633h68V637h-68zM643 637h69V639h-69zM679 639h33V640h-33zM643 639h31V640h-31zM643 640h30V641h-30zM680 640h31V641h-31zM675 641h3V643h-3zM643 641h29V643h-29zM643 643h35V644h-35zM681 641h30V645h-30zM642 644h36V645h-36zM642 645h35V646h-35zM680 645h31V647h-31zM642 646h34V647h-34zM679 647h31V648h-31zM642 647h33V648h-33zM678 648h32V649h-32zM642 648h32V650h-32zM677 649h33V650h-33zM676 650h34V651h-34zM642 650h31V651h-31zM641 651h31V653h-31zM681 651h29V653h-29zM641 653h69V654h-69zM641 654h68V659h-68zM640 659h69V662h-69zM640 662h68V666h-68zM639 666h69V669h-69zM640 669h67V670h-67zM648 670h59V671h-59zM655 671h52V672h-52zM662 672h45V673h-45zM669 673h38V674h-38zM676 674h31V675h-31zM683 675h24V676h-24zM690 676h16V677h-16zM697 677h9V678h-9zM704 678h2V679h-2z","3":"M600 642h1V643h-1zM600 643h4V644h-4zM599 644h9V645h-9zM599 645h12V646h-12zM599 646h16V647h-16zM598 647h20V648h-20zM598 648h23V649h-23zM598 649h27V650h-27zM598 650h30V651h-30zM597 651h35V652h-35zM597 652h37V653h-37zM598 653h35V654h-35zM601 654h32V655h-32zM605 655h28V656h-28zM608 656h25V657h-25zM612 657h20V658h-20zM615 658h17V659h-17zM618 659h14V660h-14zM622 660h9V661h-9zM625 661h6V662h-6zM629 662h2V663h-2z","4":"M406 587h4V588h-4zM406 588h9V589h-9zM406 589h15V590h-15zM406 590h21V591h-21zM406 591h27V592h-27zM406 592h32V593h-32zM405 593h39V594h-39zM405 594h45V595h-45zM405 595h51V596h-51zM405 596h56V597h-56zM405 597h62V598h-62zM405 598h68V599h-68zM404 599h75V600h-75zM404 600h80V601h-80zM404 601h86V602h-86zM404 602h92V603h-92zM404 603h98V604h-98zM404 604h103V605h-103zM403 605h110V606h-110zM403 606h116V607h-116zM403 607h122V608h-122zM403 608h127V609h-127zM403 609h133V610h-133zM402 610h140V611h-140zM402 611h146V612h-146zM497 612h56V613h-56zM402 612h92V613h-92zM497 613h62V614h-62zM402 613h91V615h-91zM497 614h68V615h-68zM402 615h90V616h-90zM497 615h74V616h-74zM401 616h91V617h-91zM497 616h79V617h-79zM497 617h85V618h-85zM401 617h90V619h-90zM497 618h91V619h-91zM404 619h86V620h-86zM497 619h96V621h-96zM409 620h80V621h-80zM415 621h74V622h-74zM499 621h94V623h-94zM421 622h68V623h-68zM427 623h67V624h-67zM432 624h62V625h-62zM497 623h95V626h-95zM438 625h56V626h-56zM444 626h148V627h-148zM450 627h142V628h-142zM455 628h137V629h-137zM461 629h130V630h-130zM467 630h124V631h-124zM473 631h118V632h-118zM478 632h113V633h-113zM484 633h107V634h-107zM490 634h101V635h-101zM496 635h94V636h-94zM501 636h89V637h-89zM507 637h83V638h-83zM513 638h77V639h-77zM519 639h71V640h-71zM524 640h66V641h-66zM530 641h59V642h-59zM536 642h53V643h-53zM542 643h47V644h-47zM548 644h41V645h-41zM553 645h36V646h-36zM559 646h29V647h-29zM565 647h23V648h-23zM571 648h17V649h-17zM576 649h12V650h-12zM582 650h6V651h-6z","5":"M384 551h6V552h-6zM370 552h20V553h-20zM355 553h35V554h-35zM340 554h50V555h-50zM325 555h65V556h-65zM322 556h68V558h-68zM323 558h67V561h-67zM323 561h68V573h-68zM324 573h67V575h-67zM324 575h68V578h-68zM324 578h30V580h-30zM360 578h32V580h-32zM356 580h36V582h-36zM324 580h29V583h-29zM359 582h33V583h-33zM360 583h32V584h-32zM324 583h28V585h-28zM355 584h2V585h-2zM324 585h34V588h-34zM361 584h31V589h-31zM355 588h3V589h-3zM325 588h27V590h-27zM360 589h32V590h-32zM356 589h1V590h-1zM360 590h33V591h-33zM325 590h28V591h-28zM359 591h34V592h-34zM325 591h29V592h-29zM325 592h68V602h-68zM326 602h67V604h-67zM326 604h68V615h-68zM326 615h55V616h-55zM326 616h40V617h-40zM327 617h25V618h-25zM327 618h10V619h-10z","6":"M196 475h3V476h-3zM196 476h5V477h-5zM195 477h7V478h-7zM194 478h10V479h-10zM193 479h12V480h-12zM192 480h15V481h-15zM191 481h17V482h-17zM190 482h20V483h-20zM189 483h22V484h-22zM188 484h25V485h-25zM187 485h28V486h-28zM186 486h30V487h-30zM185 487h33V488h-33zM184 488h35V489h-35zM183 489h38V490h-38zM182 490h40V491h-40zM181 491h17V492h-17zM202 491h22V492h-22zM181 492h15V493h-15zM203 492h23V493h-23zM180 493h16V494h-16zM204 493h23V494h-23zM199 493h2V494h-2zM198 494h30V495h-30zM179 494h16V495h-16zM178 495h17V496h-17zM198 495h1V496h-1zM202 495h25V496h-25zM177 496h18V497h-18zM203 496h23V497h-23zM204 497h22V498h-22zM176 497h19V498h-19zM175 498h20V499h-20zM204 498h21V499h-21zM176 499h19V500h-19zM204 499h20V500h-20zM204 500h19V501h-19zM177 500h18V502h-18zM204 501h18V502h-18zM178 502h18V503h-18zM203 502h18V503h-18zM179 503h17V504h-17zM203 503h17V504h-17zM179 504h19V505h-19zM201 504h18V505h-18zM180 505h38V506h-38zM181 506h36V507h-36zM182 507h34V508h-34zM182 508h33V509h-33zM183 509h31V510h-31zM184 510h29V511h-29zM185 511h27V512h-27zM185 512h26V513h-26zM186 513h24V514h-24zM187 514h23V515h-23zM188 515h21V516h-21zM188 516h20V517h-20zM189 517h18V518h-18zM190 518h16V519h-16zM190 519h15V520h-15zM191 520h13V521h-13zM192 521h11V522h-11zM193 522h9V523h-9zM193 523h8V524h-8zM194 524h6V525h-6zM195 525h4V526h-4zM196 526h2V527h-2zM196 527h1V528h-1z","8":"M257 416h8V417h-8zM254 417h14V418h-14zM252 418h18V419h-18zM251 419h21V420h-21zM249 420h24V421h-24zM248 421h26V422h-26zM247 422h28V423h-28zM247 423h29V424h-29zM246 424h30V425h-30zM245 425h32V427h-32zM244 427h34V429h-34zM244 429h35V430h-35zM243 430h15V431h-15zM263 430h16V431h-16zM264 431h15V432h-15zM243 431h14V432h-14zM265 432h14V435h-14zM243 432h13V435h-13zM264 435h15V436h-15zM243 435h14V436h-14zM243 436h15V438h-15zM263 436h16V438h-16zM264 438h15V439h-15zM243 438h14V439h-14zM243 439h13V440h-13zM265 439h14V441h-14zM244 440h12V442h-12zM265 441h13V442h-13zM244 442h13V443h-13zM264 442h14V443h-14zM263 443h15V444h-15zM245 443h13V444h-13zM245 444h32V445h-32zM246 445h31V446h-31zM246 446h30V447h-30zM247 447h28V448h-28zM248 448h26V449h-26zM249 449h24V450h-24zM250 450h22V451h-22zM251 451h20V452h-20zM253 452h16V453h-16zM256 453h10V454h-10z","10":"M348 361h1V362h-1zM348 362h4V363h-4zM347 363h5V369h-5zM347 369h4V373h-4zM346 373h5V378h-5zM346 378h4V382h-4zM345 382h5V387h-5zM345 387h4V391h-4zM344 391h5V397h-5zM344 397h4V400h-4zM343 400h5V401h-5z","11":"M270 337h4V338h-4zM270 338h9V339h-9zM269 339h16V340h-16zM269 340h21V341h-21zM269 341h26V342h-26zM269 342h32V343h-32zM269 343h37V344h-37zM269 344h43V345h-43zM268 345h48V347h-48zM268 347h47V350h-47zM267 350h48V352h-48zM267 352h47V356h-47zM266 356h48V358h-48zM287 358h9V359h-9zM266 358h19V359h-19zM266 359h18V360h-18zM287 359h8V360h-8zM287 360h6V361h-6zM266 360h16V361h-16zM298 358h15V363h-15zM283 362h1V363h-1zM294 362h1V363h-1zM265 361h16V364h-16zM287 361h5V364h-5zM282 363h2V364h-2zM293 363h2V364h-2zM265 364h19V367h-19zM298 363h14V369h-14zM287 364h8V372h-8zM264 367h20V372h-20zM298 369h13V372h-13zM263 372h48V374h-48zM263 374h47V378h-47zM262 378h48V380h-48zM262 380h47V383h-47zM265 383h44V384h-44zM270 384h39V385h-39zM276 385h32V386h-32zM281 386h27V387h-27zM286 387h22V388h-22zM292 388h16V389h-16zM297 389h11V390h-11zM303 390h5V391h-5z","12":"M228 334h3V335h-3zM228 335h9V336h-9zM228 336h14V337h-14zM227 337h21V338h-21zM227 338h26V339h-26zM227 339h27V342h-27zM226 342h28V344h-28zM226 344h27V348h-27zM225 348h28V350h-28zM225 350h27V352h-27zM225 352h8V353h-8zM246 352h6V353h-6zM235 352h6V353h-6zM247 353h5V354h-5zM224 353h8V354h-8zM235 353h5V354h-5zM224 354h6V355h-6zM248 354h4V355h-4zM242 354h3V356h-3zM235 354h4V356h-4zM231 356h1V357h-1zM224 355h5V358h-5zM248 355h3V358h-3zM235 356h10V358h-10zM230 357h2V358h-2zM224 358h8V359h-8zM235 358h9V359h-9zM247 358h4V360h-4zM235 359h8V360h-8zM235 360h7V361h-7zM246 360h5V361h-5zM245 361h5V362h-5zM235 361h6V363h-6zM244 362h6V363h-6zM223 359h9V364h-9zM243 363h7V364h-7zM235 363h5V364h-5zM248 364h2V366h-2zM235 364h4V366h-4zM222 364h10V366h-10zM222 366h27V370h-27zM221 370h28V372h-28zM221 372h27V375h-27zM220 375h28V377h-28zM221 377h26V378h-26zM226 378h21V379h-21zM232 379h15V380h-15zM237 380h10V381h-10zM243 381h4V382h-4z","13":"M136 232h2V233h-2zM135 233h7V234h-7zM135 234h11V235h-11zM135 235h15V236h-15zM135 236h19V237h-19zM134 237h24V238h-24zM134 238h28V239h-28zM134 239h32V240h-32zM134 240h36V241h-36zM133 241h41V242h-41zM133 242h45V243h-45zM133 243h49V244h-49zM133 244h53V245h-53zM132 245h58V246h-58zM132 246h62V247h-62zM132 247h66V248h-66zM132 248h70V249h-70zM163 249h6V250h-6zM174 249h30V250h-30zM131 249h30V250h-30zM175 250h28V251h-28zM131 250h29V251h-29zM163 250h5V251h-5zM131 251h27V252h-27zM170 251h3V253h-3zM163 251h4V253h-4zM131 252h26V253h-26zM176 251h27V254h-27zM163 253h10V254h-10zM159 253h1V254h-1zM130 253h27V255h-27zM158 254h2V255h-2zM175 254h27V256h-27zM163 254h8V256h-8zM130 255h30V257h-30zM176 256h26V258h-26zM163 256h10V259h-10zM129 257h31V261h-31zM176 258h25V261h-25zM170 259h3V261h-3zM163 259h4V261h-4zM175 261h26V262h-26zM163 261h5V262h-5zM128 261h32V263h-32zM163 262h6V263h-6zM174 262h26V263h-26zM130 263h70V264h-70zM134 264h66V265h-66zM138 265h61V266h-61zM142 266h57V267h-57zM146 267h53V268h-53zM150 268h49V269h-49zM154 269h44V270h-44zM158 270h40V271h-40zM162 271h36V272h-36zM166 272h32V273h-32zM170 273h27V274h-27zM174 274h23V275h-23zM178 275h19V276h-19zM182 276h15V277h-15zM186 277h10V278h-10zM190 278h6V279h-6zM193 279h3V280h-3z","14":"M285 261h1V262h-1zM285 262h7V263h-7zM285 263h12V264h-12zM285 264h18V265h-18zM284 265h24V266h-24zM284 266h29V267h-29zM284 267h10V268h-10zM296 267h8V268h-8zM284 268h9V269h-9zM296 268h7V270h-7zM284 269h7V270h-7zM284 270h6V271h-6zM307 267h10V272h-10zM296 270h6V272h-6zM292 271h1V272h-1zM283 271h7V273h-7zM291 272h2V273h-2zM296 272h5V274h-5zM296 274h4V275h-4zM307 272h9V276h-9zM283 273h10V276h-10zM309 276h7V277h-7zM296 275h3V278h-3zM309 277h6V278h-6zM282 276h11V279h-11zM285 279h8V280h-8zM307 278h8V281h-8zM296 278h8V281h-8zM291 280h2V281h-2zM296 281h19V282h-19zM302 282h12V283h-12zM307 283h7V284h-7zM313 284h1V285h-1z","15":"M307 149h3V150h-3zM307 150h8V151h-8zM307 151h14V152h-14zM307 152h19V153h-19zM306 153h26V154h-26zM306 154h31V155h-31zM306 155h34V158h-34zM305 158h34V163h-34zM305 163h33V164h-33zM304 164h34V168h-34zM303 168h35V169h-35zM303 169h34V174h-34zM303 174h23V175h-23zM328 174h8V176h-8zM332 176h4V177h-4zM302 175h23V180h-23zM301 180h24V182h-24zM301 182h23V185h-23zM300 185h24V187h-24zM300 187h23V189h-23zM300 189h6V190h-6zM320 189h3V191h-3zM308 189h6V191h-6zM299 190h6V191h-6zM316 191h7V192h-7zM299 191h4V192h-4zM316 192h6V193h-6zM308 191h5V194h-5zM304 193h1V194h-1zM319 193h3V194h-3zM299 192h3V195h-3zM303 194h2V195h-2zM320 194h2V195h-2zM308 194h4V196h-4zM299 195h6V196h-6zM315 195h2V196h-2zM321 195h1V198h-1zM308 196h10V199h-10zM315 199h3V200h-3zM298 196h7V201h-7zM308 199h4V201h-4zM316 200h1V201h-1zM320 200h1V202h-1zM308 201h5V202h-5zM297 201h8V203h-8zM308 202h6V203h-6zM319 202h2V203h-2zM297 203h23V206h-23zM296 206h24V209h-24zM296 209h23V211h-23zM295 211h24V214h-24zM295 214h23V217h-23zM294 217h24V219h-24zM294 219h23V220h-23zM293 220h24V221h-24zM292 221h24V224h-24zM292 224h25V225h-25zM292 225h31V226h-31zM292 226h33V227h-33zM291 227h34V229h-34zM291 229h33V232h-33zM290 232h34V234h-34zM290 234h33V238h-33zM289 238h34V240h-34zM289 240h33V243h-33zM290 243h32V244h-32zM295 244h27V245h-27zM301 245h20V246h-20zM306 246h15V247h-15zM312 247h9V248h-9zM317 248h4V249h-4z","16":"M430 181h3V182h-3zM425 182h8V183h-8zM420 183h13V184h-13zM417 184h16V185h-16zM417 185h17V187h-17zM418 187h16V190h-16zM418 190h17V192h-17zM419 192h16V195h-16zM419 195h17V197h-17zM420 197h12V198h-12zM420 198h6V199h-6zM420 199h1V200h-1zM421 207h3V208h-3zM416 208h8V209h-8zM413 209h11V210h-11zM414 210h10V212h-10zM414 212h11V215h-11zM415 215h10V217h-10zM415 217h11V218h-11zM415 218h7V219h-7zM415 219h2V220h-2z","17":"M342 100h1V101h-1zM342 101h4V102h-4zM342 102h7V103h-7zM341 103h11V104h-11zM341 104h13V105h-13zM341 105h16V106h-16zM340 106h20V108h-20zM339 108h21V109h-21zM339 109h20V111h-20zM338 111h21V112h-21zM338 112h20V114h-20zM337 114h20V117h-20zM336 117h20V119h-20zM335 119h21V120h-21zM335 120h20V122h-20zM334 122h21V123h-21zM334 123h20V125h-20zM333 125h20V128h-20zM332 128h20V130h-20zM331 130h21V131h-21zM331 131h20V133h-20zM330 133h21V134h-21zM330 134h20V136h-20zM329 136h20V139h-20zM328 139h20V141h-20zM327 141h21V142h-21zM329 142h18V143h-18zM332 143h15V144h-15zM335 144h12V145h-12zM337 145h9V146h-9zM340 146h6V147h-6zM343 147h2V148h-2z","18":"M218 100h2V101h-2zM217 101h5V102h-5zM217 102h7V103h-7zM216 103h10V104h-10zM216 104h12V105h-12zM215 105h15V106h-15zM215 106h14V107h-14zM214 107h15V108h-15zM214 108h14V109h-14zM213 109h15V110h-15zM213 110h14V111h-14zM212 111h15V112h-15zM212 112h14V113h-14zM211 113h15V114h-15zM211 114h14V115h-14zM210 115h15V117h-15zM209 117h15V119h-15zM208 119h15V121h-15zM207 121h15V123h-15zM206 123h15V125h-15zM206 125h14V126h-14zM205 126h15V127h-15zM205 127h14V128h-14zM204 128h15V129h-15zM205 129h13V130h-13zM208 130h10V131h-10zM210 131h7V132h-7zM212 132h5V133h-5zM214 133h2V134h-2z","19":"M402 58h3V59h-3zM402 59h6V60h-6zM402 60h9V61h-9zM401 61h12V62h-12zM401 62h15V63h-15zM401 63h17V64h-17zM400 64h21V65h-21zM400 65h24V66h-24zM399 66h27V67h-27zM399 67h30V68h-30zM399 68h32V69h-32zM398 69h36V70h-36zM398 70h39V71h-39zM397 71h42V72h-42zM397 72h45V73h-45zM397 73h47V74h-47zM396 74h51V75h-51zM443 75h7V76h-7zM396 75h35V76h-35zM433 75h7V76h-7zM396 76h34V77h-34zM445 76h7V77h-7zM433 76h5V78h-5zM445 77h10V78h-10zM399 77h29V78h-29zM446 78h11V79h-11zM401 78h26V79h-26zM429 79h1V80h-1zM404 79h23V80h-23zM446 79h14V80h-14zM446 80h17V81h-17zM407 80h20V81h-20zM428 80h2V81h-2zM409 81h21V82h-21zM446 81h19V82h-19zM433 78h4V83h-4zM412 82h18V83h-18zM446 82h22V83h-22zM433 83h5V84h-5zM446 83h24V84h-24zM414 83h16V84h-16zM442 84h1V85h-1zM446 84h27V85h-27zM433 84h6V85h-6zM417 84h13V85h-13zM433 85h10V86h-10zM446 85h30V86h-30zM420 85h10V86h-10zM433 86h4V87h-4zM440 86h2V87h-2zM422 86h8V87h-8zM445 86h33V88h-33zM433 87h5V88h-5zM425 87h5V88h-5zM433 88h6V89h-6zM443 88h35V89h-35zM427 88h3V89h-3zM430 89h48V90h-48zM433 90h44V91h-44zM435 91h42V92h-42zM438 92h38V93h-38zM440 93h36V94h-36zM443 94h33V95h-33zM446 95h29V96h-29zM448 96h27V97h-27zM451 97h24V98h-24zM453 98h21V99h-21zM456 99h18V100h-18zM459 100h14V101h-14zM461 101h12V102h-12zM464 102h9V103h-9zM466 103h6V104h-6zM469 104h3V105h-3z","20":"M514 109h3V110h-3zM513 110h6V111h-6zM513 111h9V112h-9zM513 112h11V113h-11zM512 113h15V114h-15zM512 114h18V115h-18zM511 115h21V116h-21zM511 116h24V117h-24zM511 117h26V118h-26zM510 118h30V119h-30zM510 119h33V120h-33zM509 120h36V121h-36zM509 121h39V122h-39zM509 122h41V123h-41zM508 123h45V124h-45zM508 124h48V125h-48zM508 125h50V126h-50zM507 126h54V127h-54zM507 127h56V128h-56zM506 128h60V129h-60zM506 129h63V130h-63zM506 130h65V131h-65zM505 131h69V132h-69zM505 132h71V133h-71zM504 133h75V134h-75zM504 134h78V135h-78zM558 135h7V136h-7zM504 135h49V136h-49zM568 135h16V136h-16zM505 136h47V137h-47zM570 136h17V137h-17zM559 136h4V137h-4zM560 137h3V138h-3zM570 137h19V138h-19zM508 137h43V138h-43zM554 137h3V139h-3zM571 138h21V139h-21zM510 138h41V139h-41zM571 139h24V140h-24zM513 139h44V140h-44zM560 138h2V141h-2zM571 140h26V141h-26zM516 140h41V141h-41zM518 141h38V142h-38zM571 141h29V142h-29zM559 141h3V143h-3zM571 142h31V143h-31zM521 142h34V143h-34zM558 143h4V144h-4zM571 143h34V144h-34zM523 143h31V144h-31zM571 144h37V145h-37zM557 144h5V145h-5zM526 144h27V145h-27zM571 145h39V146h-39zM556 145h6V146h-6zM529 145h24V146h-24zM555 146h8V147h-8zM531 146h21V147h-21zM570 146h43V147h-43zM570 147h45V148h-45zM560 147h3V148h-3zM534 147h17V148h-17zM568 148h50V149h-50zM536 148h15V149h-15zM560 148h5V149h-5zM539 149h82V150h-82zM542 150h81V151h-81zM544 151h80V152h-80zM547 152h77V153h-77zM550 153h74V154h-74zM552 154h71V155h-71zM555 155h68V156h-68zM557 156h65V157h-65zM560 157h62V158h-62zM563 158h59V159h-59zM565 159h56V160h-56zM568 160h53V161h-53zM570 161h50V162h-50zM573 162h47V163h-47zM576 163h44V164h-44zM578 164h41V165h-41zM581 165h38V166h-38zM583 166h36V167h-36zM586 167h32V168h-32zM589 168h29V169h-29zM591 169h26V170h-26zM594 170h23V171h-23zM596 171h21V172h-21zM599 172h17V173h-17zM602 173h14V174h-14zM604 174h11V175h-11zM607 175h8V176h-8zM609 176h6V177h-6zM612 177h2V178h-2z","7":"M156 84h18V90h-18zM204 84h18V90h-18zM150 90h30V96h-30zM228 90h6V96h-6zM216 96h30V102h-30zM144 96h48V102h-48zM276 84h6V108h-6zM210 102h6V108h-6zM240 102h12V108h-12zM138 102h60V108h-60zM228 102h6V114h-6zM258 108h24V114h-24zM114 108h12V114h-12zM132 108h84V114h-84zM264 114h18V120h-18zM132 114h78V120h-78zM102 114h24V120h-24zM222 120h6V126h-6zM96 120h102V126h-102zM216 126h24V132h-24zM90 126h114V132h-114zM84 132h168V138h-168zM72 138h192V144h-192zM66 144h204V150h-204zM60 150h222V156h-222zM54 156h234V162h-234zM48 162h234V168h-234zM36 168h252V174h-252zM24 174h114V180h-114zM150 174h150V180h-150zM24 180h108V186h-108zM162 180h138V186h-138zM30 186h90V192h-90zM168 186h132V192h-132zM36 192h72V198h-72zM180 192h120V198h-120zM42 198h60V204h-60zM192 198h96V204h-96zM294 198h6V210h-6zM132 204h18V210h-18zM42 204h54V210h-54zM198 204h90V210h-90zM144 210h24V216h-24zM210 210h72V216h-72zM48 210h42V216h-42zM126 210h12V216h-12zM54 216h30V222h-30zM162 216h24V222h-24zM126 216h6V222h-6zM222 216h60V222h-60zM60 222h12V228h-12zM114 222h12V228h-12zM180 222h24V228h-24zM228 222h54V228h-54zM288 210h6V234h-6zM198 228h24V234h-24zM234 228h48V234h-48zM108 228h12V234h-12zM132 228h24V234h-24zM216 234h12V240h-12zM156 234h24V240h-24zM126 234h12V240h-12zM108 234h6V240h-6zM246 234h30V246h-30zM282 234h6V246h-6zM222 240h6V246h-6zM180 240h24V246h-24zM96 240h12V246h-12zM198 246h12V252h-12zM288 246h12V252h-12zM96 246h6V252h-6zM126 240h6V258h-6zM246 246h24V258h-24zM216 246h12V258h-12zM204 252h6V258h-6zM90 252h6V258h-6zM282 258h18V264h-18zM120 258h12V264h-12zM84 258h12V264h-12zM240 258h30V270h-30zM84 264h18V270h-18zM126 264h18V270h-18zM216 258h6V276h-6zM96 270h18V276h-18zM144 270h24V276h-24zM240 270h24V276h-24zM198 258h6V282h-6zM276 264h6V282h-6zM108 276h18V282h-18zM252 276h12V282h-12zM168 276h18V282h-18zM186 396h12V402h-12zM180 402h18V408h-18zM174 408h36V414h-36zM168 414h48V420h-48zM162 420h60V426h-60zM156 426h72V432h-72zM150 432h78V438h-78zM150 438h72V444h-72zM144 444h72V450h-72zM138 450h78V456h-78zM30 456h180V462h-180zM30 462h174V474h-174zM30 474h180V480h-180zM210 480h12V486h-12zM30 480h162V486h-162zM216 486h18V492h-18zM30 486h156V492h-156zM30 492h150V498h-150zM198 492h6V504h-6zM228 492h6V504h-6zM30 498h144V504h-144zM216 504h18V510h-18zM30 504h138V510h-138zM174 504h6V510h-6zM180 510h6V516h-6zM30 510h132V516h-132zM210 510h12V516h-12zM204 516h12V522h-12zM222 516h12V522h-12zM186 516h6V522h-6zM186 522h24V528h-24zM216 522h12V528h-12zM30 516h126V534h-126zM210 528h12V534h-12zM192 528h12V534h-12zM186 534h12V540h-12zM30 534h120V540h-120zM204 534h12V540h-12zM198 540h12V546h-12zM30 540h108V546h-108zM180 540h12V546h-12zM198 546h6V552h-6zM30 546h96V552h-96zM180 546h6V552h-6zM30 552h90V558h-90zM192 552h6V558h-6zM174 552h12V558h-12zM186 558h12V564h-12zM168 558h12V564h-12zM78 558h24V564h-24zM90 564h6V570h-6zM180 564h12V570h-12zM162 564h12V570h-12zM162 570h6V576h-6zM174 570h12V576h-12z"},"labels":{"1":[670,296,676,310],"2":[672,639,681,653],"3":[610,630,626,649],"4":[489,612,499,626],"5":[352,578,361,592],"6":[195,491,204,505],"7":[118,416,127,430],"8":[256,430,265,444],"9":[329,447,338,461],"10":[351,377,373,391],"11":[281,358,298,372],"12":[229,352,248,366],"13":[157,249,176,263],"14":[289,261,309,285],"15":[302,189,324,206],"16":[432,207,451,221],"17":[352,130,375,144],"18":[231,112,250,126],"19":[425,71,446,96],"20":[551,135,571,149]}}
+</script>
+
+<script>
+const MAX_WRONG = 3;
+const SVG_NS = "http://www.w3.org/2000/svg";
+const REGIONS = JSON.parse(document.getElementById("regions").textContent);
+// Nudge labels that would overlap their neighbours.
+const LABEL_SHIFT = { 11: [8, 0], 12: [-10, 0] };
+// Legend numbers of each kind of building; whatever is in buildings.json and
+// is neither a stoa nor a temple goes into the last question.
+const STOAS = ["4", "15", "17", "19", "20"];
+const TEMPLES = ["13", "14", "18"];
+
+const $ = id => document.getElementById(id);
+let NAMES, IDS, QUESTIONS, state;
+let soundOn = true;
+try { soundOn = localStorage.getItem("agora-sound") !== "off"; } catch (e) {}
+
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(SVG_NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+
+// Put the name over the legend number, wrapped into short lines.
+function drawLabel(id, kind) {
+  const [x0, y0, x1, y1] = REGIONS.labels[id];
+  const [dx, dy] = LABEL_SHIFT[id] || [0, 0];
+  const cx = (x0 + x1) / 2 + dx, cy = (y0 + y1) / 2 + dy;
+  const lines = [];
+  for (const w of NAMES[id].split(" ")) {
+    const last = lines[lines.length - 1];
+    if (last && (last + " " + w).length <= 13) lines[lines.length - 1] += " " + w;
+    else lines.push(w);
+  }
+  const g = el("g", { class: "label " + kind }, $("labels"));
+  const rect = el("rect", { rx: 4 }, g);
+  const lh = 12, top = cy - (lines.length * lh) / 2 + 9;
+  const text = el("text", {}, g);
+  lines.forEach((l, i) => {
+    const t = el("tspan", { x: cx, y: top + i * lh }, text);
+    t.textContent = l;
+  });
+  const b = text.getBBox();
+  rect.setAttribute("x", b.x - 4);
+  rect.setAttribute("y", b.y - 2);
+  rect.setAttribute("width", b.width + 8);
+  rect.setAttribute("height", b.height + 4);
+}
+
+function addChip(id, kind) {
+  const li = document.createElement("li");
+  li.className = kind;
+  li.textContent = NAMES[id];
+  $("found").appendChild(li);
+}
+
+function totalFound() {
+  return state.results.reduce((n, r) => n + r.found, 0) + (state.done ? 0 : state.found.size);
+}
+
+function renderScore(bump) {
+  const max = IDS.length;
+  const score = totalFound();
+  $("score").textContent = score;
+  $("max").textContent = "/ " + max;
+  const c = 2 * Math.PI * 42;
+  const fill = $("gaugeFill");
+  fill.style.strokeDasharray = c;
+  fill.style.strokeDashoffset = c * (1 - score / max);
+  if (bump) {
+    $("gauge").classList.remove("bump");
+    void $("gauge").offsetWidth;
+    $("gauge").classList.add("bump");
+  }
+  const segs = $("segments");
+  segs.innerHTML = "";
+  QUESTIONS.forEach((q, i) => {
+    const s = document.createElement("i");
+    if (i < state.results.length) s.className = state.results[i].ok ? "ok" : "ko";
+    else if (i === state.q) s.className = "now";
+    segs.appendChild(s);
+  });
+  $("progress").textContent = `Pregunta ${Math.min(state.q + 1, QUESTIONS.length)} de ${QUESTIONS.length}`;
+}
+
+function renderCount() {
+  const q = QUESTIONS[state.q];
+  $("count").textContent = `Encontrados: ${state.found.size} de ${q.ids.length}`;
+  document.querySelectorAll(".tries i").forEach((d, i) =>
+    d.classList.toggle("used", i < state.wrong.size));
+}
+
+function feedback(text, cls) {
+  $("feedback").textContent = text;
+  $("feedback").className = "feedback " + (cls || "");
+}
+
+// Every building of the game is offered on the map in every question.
+function drawPicks() {
+  $("fills").innerHTML = "";
+  $("labels").innerHTML = "";
+  $("overlay").classList.remove("locked");
+  for (const id of IDS) {
+    const g = el("g", { class: "pick", "data-id": id, tabindex: 0, role: "button", "aria-label": "Edificio " + id }, $("fills"));
+    el("path", { d: REGIONS.paths[id] }, g);
+    g.addEventListener("click", () => pick(id, g));
+    g.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(id, g); }
+    });
+  }
+}
+
+function ask() {
+  if (state.q >= QUESTIONS.length) return finish();
+  const q = QUESTIONS[state.q];
+  state.found = new Set();
+  state.wrong = new Set();
+  state.done = false;
+  $("question").textContent = q.question;
+  $("found").innerHTML = "";
+  $("next").hidden = true;
+  feedback("");
+  drawPicks();
+  renderCount();
+  renderScore(false);
+}
+
+function pick(id, g) {
+  if (state.done || state.found.has(id) || state.wrong.has(id)) return;
+  const q = QUESTIONS[state.q];
+  if (q.ids.includes(id)) {
+    state.found.add(id);
+    g.setAttribute("class", "pick solved");
+    drawLabel(id, "ok");
+    addChip(id, "ok");
+    renderCount();
+    renderScore(true);
+    if (state.found.size === q.ids.length) {
+      feedback(`¡Perfecto! Has encontrado ${q.what}.`, "good");
+      settle(true);
+      setTimeout(showApollo, 700);
+    } else {
+      feedback("¡Bien!", "good");
+    }
+    return;
+  }
+  state.wrong.add(id);
+  g.setAttribute("class", "pick missed");
+  drawLabel(id, "ko");
+  addChip(id, "ko");
+  renderCount();
+  const left = MAX_WRONG - state.wrong.size;
+  if (left > 1) feedback(`No. Te quedan ${left} errores.`, "bad");
+  else if (left === 1) feedback("No. Te queda 1 error.", "bad");
+  else if (left === 0) feedback("No. ¡Cuidado, no puedes fallar más!", "bad");
+  else {
+    feedback(`Demasiados errores. Te faltaban:`, "bad");
+    for (const rid of q.ids) {
+      if (state.found.has(rid)) continue;
+      $("fills").querySelector(`[data-id="${rid}"]`).setAttribute("class", "pick reveal");
+      drawLabel(rid, "rv");
+      addChip(rid, "rv");
+    }
+    settle(false);
+    $("next").hidden = false;
+    $("next").focus();
+  }
+}
+
+function settle(ok) {
+  state.done = true;
+  state.results.push({ ok, found: state.found.size, wrong: state.wrong.size });
+  $("overlay").classList.add("locked");
+  renderScore(false);
+  $("next").textContent = state.q + 1 < QUESTIONS.length ? "Siguiente pregunta" : "Ver resultado";
+}
+
+function next() {
+  state.q++;
+  ask();
+}
+
+function showApollo() {
+  const q = QUESTIONS[state.q];
+  const errs = state.wrong.size;
+  $("apolloText").textContent = `Has encontrado ${q.what}` +
+    (errs === 0 ? " sin ningún error." : errs === 1 ? " con 1 error." : ` con ${errs} errores.`);
+  renderSound();
+  $("apollo").hidden = false;
+  $("continue").focus();
+  if (soundOn) playKithara();
+}
+
+function renderSound() {
+  $("sound").textContent = soundOn ? "🔊 Sonido" : "🔇 Sin sonido";
+}
+
+// Plucked strings (Karplus–Strong) for a short kithara phrase in the Dorian mode.
+let audio;
+function pluck(freq, when) {
+  const sr = audio.sampleRate, n = Math.floor(sr * 1.8), p = Math.round(sr / freq);
+  const buf = audio.createBuffer(1, n, sr), d = buf.getChannelData(0);
+  const ring = new Float32Array(p).map(() => Math.random() * 2 - 1);
+  for (let i = 0; i < n; i++) {
+    const j = i % p, v = ring[j];
+    d[i] = v;
+    ring[j] = 0.497 * (v + ring[(j + 1) % p]);
+  }
+  const src = audio.createBufferSource(), gain = audio.createGain();
+  src.buffer = buf;
+  gain.gain.value = 0.22;
+  src.connect(gain).connect(audio.destination);
+  src.start(when);
+}
+
+function playKithara() {
+  try {
+    audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+    audio.resume();
+    const t = audio.currentTime + 0.05;
+    const E4 = 329.63, G4 = 392, A4 = 440, B4 = 493.88, D5 = 587.33, E5 = 659.25;
+    [E4, G4, A4, B4, E5, D5, B4, A4].forEach((f, i) => pluck(f, t + i * 0.17));
+    [E4, B4, E5].forEach((f, i) => pluck(f, t + 8 * 0.17 + 0.1 + i * 0.03));
+  } catch (e) {}
+}
+
+function finish() {
+  const found = totalFound();
+  const perfect = state.results.filter(r => r.ok).length;
+  const wrong = state.results.reduce((n, r) => n + r.wrong, 0);
+  $("finalScore").textContent = `${found} / ${IDS.length}`;
+  $("finalText").textContent = `Edificios bien clasificados, con ${wrong} ${wrong === 1 ? "error" : "errores"} en total.`;
+  $("finalPerfect").textContent = `Preguntas completadas: ${perfect} de ${QUESTIONS.length}`;
+  $("end").hidden = false;
+  $("again").focus();
+}
+
+function start() {
+  state = { q: 0, results: [], found: new Set(), wrong: new Set(), done: false };
+  $("end").hidden = true;
+  $("apollo").hidden = true;
+  ask();
+}
+
+fetch("buildings.json")
+  .then(r => r.json())
+  .then(data => {
+    NAMES = data.names;
+    IDS = Object.keys(NAMES);
+    const stoas = STOAS.filter(id => id in NAMES);
+    const temples = TEMPLES.filter(id => id in NAMES);
+    const rest = IDS.filter(id => !stoas.includes(id) && !temples.includes(id));
+    QUESTIONS = [
+      { question: "¿Cuáles son las stoas?", what: "todas las stoas", ids: stoas },
+      { question: "¿Cuáles son los templos?", what: "todos los templos", ids: temples },
+      { question: "¿Cuáles son el resto de los edificios?", what: "el resto de los edificios", ids: rest },
+    ].filter(q => q.ids.length);
+    document.querySelector(".credit a").textContent = data.ui.credit;
+    $("next").onclick = next;
+    $("continue").onclick = () => { $("apollo").hidden = true; next(); };
+    $("sound").onclick = () => {
+      soundOn = !soundOn;
+      try { localStorage.setItem("agora-sound", soundOn ? "on" : "off"); } catch (e) {}
+      renderSound();
+      if (soundOn) playKithara();
+    };
+    $("again").onclick = start;
+    $("game").hidden = false;
+    start();
+  })
+  .catch(() => {
+    const p = document.createElement("p");
+    p.className = "card error";
+    p.textContent = "No se pudo cargar buildings.json. Sirve esta carpeta por HTTP (p. ej. python3 -m http.server) en vez de abrir el archivo directamente.";
+    document.body.appendChild(p);
+  });
+</script>
+</body>
+</html>

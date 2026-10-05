@@ -22,3 +22,7 @@ Map `agora.png` by Madmedea, [World History Encyclopedia](https://www.worldhisto
 ## Agora c. AD 150
 
 `atenas-150-dc.html` is the same game on the 2nd-century plan. The map `agora-150-dc.webp` is `Plan-of-the-agora-at-the-height-of-its-development-in-ca-AD-150.webp` with the printed names erased, and the names live in `buildings-150-dc.json` (same format as above). Delete an entry from `names` to leave that place out of the game. Map, marker positions and label positions are regenerated with `python3 tools/erase-labels-150.py` (its output goes into the `<script id="places">` block).
+
+## Tipos de edificio
+
+`tipos.html` uses the same map and `buildings.json`, but asks for kinds of building instead of names: *¿Cuáles son las stoas?*, *¿Cuáles son los templos?*, *¿Cuáles son el resto de los edificios?* Every building is clickable in each question and up to 3 wrong buildings are allowed; the fourth ends the question and shows the ones that were missing. Finding all of them brings up Apollo playing the kithara, after the [fresco in the Parco archeologico del Colosseo](https://colosseo.it/es/opere/fresco-con-apolo-que-suena-la-ctara/). Which numbers are stoas and temples is set by `STOAS` and `TEMPLES` at the top of the script; every other building in `names` goes into the last question.
